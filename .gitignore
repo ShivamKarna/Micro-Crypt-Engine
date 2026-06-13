@@ -1,0 +1,5 @@
+# Binaries
+*.wasm
+.wrangler/
+# OS specific files
+.DS_Store
