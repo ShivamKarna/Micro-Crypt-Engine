@@ -3,45 +3,209 @@
   <head>
     <meta charset="utf-8" />
     <title>Micro-Crypt Engine</title>
+    <script src="wasm_exec.js"></script>
+    <script>
+      const go = new Go();
+      let currentMode = "encrypt";
+
+      // Load the WASM binary
+      WebAssembly.instantiateStreaming(
+        fetch("crypto.wasm"),
+        go.importObject,
+      ).then((result) => {
+        go.run(result.instance);
+        console.log("WASM Engine Loaded Successfully");
+      });
+
+      function processCrypto() {
+        const input = document.getElementById("messageInput").value;
+        const key = document.getElementById("secretKey").value;
+
+        // This global function comes directly from our Go main()
+        if (typeof encryptTextNative === "function") {
+          const result = encryptTextNative(input, key, currentMode);
+          document.getElementById("outputDisplay").innerText = result;
+        }
+      }
+
+      function toggleMode(mode) {
+        currentMode = mode;
+        document
+          .getElementById("btnEncrypt")
+          .classList.toggle("active", mode === "encrypt");
+        document
+          .getElementById("btnDecrypt")
+          .classList.toggle("active", mode === "decrypt");
+
+        // Update UI context
+        document.getElementById("inputLabel").innerText =
+          mode === "encrypt"
+            ? "2. Plaintext Message"
+            : "2. Hex Ciphertext to Decrypt";
+        document.getElementById("outputLabel").innerText =
+          mode === "encrypt" ? "Encrypted Hex output" : "Decrypted Text Output";
+        document.getElementById("outputDisplay").style.color =
+          mode === "encrypt" ? "#ff0055" : "#00ff66";
+
+        document.getElementById("messageInput").value = "";
+        document.getElementById("outputDisplay").innerText = "";
+        processCrypto();
+      }
+
+      function toggleKeyVisibility() {
+        const keyInput = document.getElementById("secretKey");
+        const btn = document.getElementById("toggleKeyBtn");
+
+        if (keyInput.type === "password") {
+          keyInput.type = "text";
+          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+        } else {
+          keyInput.type = "password";
+          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+        }
+      }
+    </script>
     <style>
       body {
-        background: #000000;
-        color: #555555;
+        background: #000;
+        color: #fff;
         font-family: monospace;
         padding: 60px;
         max-width: 600px;
         margin: 0 auto;
-        text-align: center;
-      }
-      .status-container {
-        margin-top: 100px;
-        border: 1px dashed #1a1a1a;
-        padding: 40px;
-        background: #020202;
       }
       h2 {
-        color: #ffffff;
+        border-bottom: 1px dashed #222;
+        padding-bottom: 10px;
         letter-spacing: 2px;
-        margin-bottom: 20px;
+        margin-bottom: 30px;
       }
-      .blink {
-        animation: blinker 1.5s linear infinite;
+      .mode-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+      }
+      .mode-btn {
+        background: #020202;
+        color: #555;
+        border: 1px solid #1a1a1a;
+        padding: 10px 20px;
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+      .mode-btn.active {
+        color: #fff;
+        border-color: #fff;
+        background: #0a0a0a;
+      }
+      .field-group {
+        margin-bottom: 25px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #555;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+      }
+      .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      input {
+        background: #050505;
+        color: #fff;
+        border: 1px solid #1a1a1a;
+        padding: 14px;
+        width: 100%;
+        box-sizing: border-box;
+        outline: none;
+      }
+      #secretKey {
+        padding-right: 45px;
+      }
+      .toggle-password-btn {
+        position: absolute;
+        right: 14px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #555;
+      }
+      .output-box {
+        margin-top: 40px;
+        background: #020202;
+        border: 1px dashed #1a1a1a;
+        padding: 20px;
+      }
+      #outputDisplay {
         color: #ff0055;
-      }
-      @keyframes blinker {
-        50% {
-          opacity: 0;
-        }
+        word-break: break-all;
+        font-size: 1.1rem;
+        min-height: 24px;
       }
     </style>
   </head>
   <body>
-    <div class="status-container">
-      <h2>[ MICRO-CRYPT ENGINE ]</h2>
-      <p class="blink">STATUS: CORE KERNEL OFFLINE</p>
-      <p style="font-size: 0.8rem; color: #333333">
-        Waiting for WebAssembly JavaScript Bindings...
-      </p>
+    <h2>[ MICRO-CRYPT ENGINE ]</h2>
+    <label>Select Operation Mode</label>
+    <div class="mode-container">
+      <button
+        id="btnEncrypt"
+        class="mode-btn active"
+        onclick="toggleMode('encrypt')"
+      >
+        Encrypt
+      </button>
+      <button id="btnDecrypt" class="mode-btn" onclick="toggleMode('decrypt')">
+        Decrypt
+      </button>
+    </div>
+    <div class="field-group">
+      <label>1. Encryption Passphrase (Key)</label>
+      <div class="input-wrapper">
+        <input
+          type="password"
+          id="secretKey"
+          oninput="processCrypto()"
+          placeholder="Enter key..."
+        />
+        <button
+          type="button"
+          id="toggleKeyBtn"
+          class="toggle-password-btn"
+          onclick="toggleKeyVisibility()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="field-group">
+      <label id="inputLabel">2. Plaintext Message</label>
+      <input
+        type="text"
+        id="messageInput"
+        oninput="processCrypto()"
+        placeholder="Type here..."
+      />
+    </div>
+    <div class="output-box">
+      <label id="outputLabel">Encrypted Hex output</label>
+      <div id="outputDisplay"></div>
     </div>
   </body>
 </html>
