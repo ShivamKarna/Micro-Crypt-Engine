@@ -30,3 +30,15 @@ Target the browser architecture explicitly by setting the environmental build va
 ```bash
 GOOS=js GOARCH=wasm go build -o web/crypto.wasm main.go
 ```
+
+## 2. Run a Local Web Server
+
+Because WebAssembly requires strict CORS headers to load files securely via JavaScript, you must serve the directory through a web server rather than opening the HTML file directly:
+
+```bash
+# Using Bun
+bunx serve web
+
+# Using Python
+python3 -m http.server --directory web
+```
